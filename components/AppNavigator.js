@@ -1,10 +1,10 @@
 // AppNavigator.js
 
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import Login from './Login';
-import Register from './Register';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import Login from "./auth/Login";
+import Register from "./auth/Register";
 
 const Stack = createStackNavigator();
 

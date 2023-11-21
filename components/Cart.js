@@ -1,26 +1,33 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 const CartPage = ({ cartItems, cartTotal, onClearCart }) => {
   const navigation = useNavigation();
+
   const renderItem = ({ item }) => (
     <View style={styles.cartItem}>
-      <Text>{item.name}</Text>
+      <Text>{item.productName}</Text>
       <Text>Quantity: {item.quantity}</Text>
-      <Text>Price: R{item.price.toFixed(2)}</Text>
+      <Text>Price: R{item.price}</Text>
     </View>
   );
 
   const handleCheckout = () => {
-    navigation.navigate('Card', { cartItems });
+    navigation.navigate("Card", {
+      cartTotal: cartTotal,
+      cartItems: cartItems,
+    });
   };
+
+  const parsedCartTotal = parseFloat(cartTotal);
+  const formattedCartTotal = `R${parsedCartTotal.toFixed(2)}`;
 
   return (
     <View style={styles.container}>
@@ -30,7 +37,7 @@ const CartPage = ({ cartItems, cartTotal, onClearCart }) => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
       />
-      <Text style={styles.total}>Cart Total: R{cartTotal.toFixed(2)}</Text>
+      <Text style={styles.total}>Cart Total: {formattedCartTotal}</Text>
       <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
         <Text style={styles.text}>Checkout</Text>
       </TouchableOpacity>
@@ -47,42 +54,42 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    color: 'rgba(255, 60, 60, 0.99)',
+    color: "rgba(255, 60, 60, 0.99)",
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   cartItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 10,
     borderBottomWidth: 1,
     paddingBottom: 5,
   },
   total: {
-    color: 'rgba(255, 60, 60, 0.99)',
+    color: "rgba(255, 60, 60, 0.99)",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 10,
   },
   checkoutButton: {
-    backgroundColor: 'green',
+    backgroundColor: "green",
     padding: 10,
     borderRadius: 15,
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   clearButton: {
-    backgroundColor: 'rgba(255, 60, 60, 0.99)',
+    backgroundColor: "rgba(255, 60, 60, 0.99)",
     padding: 10,
     borderRadius: 15,
     marginTop: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   text: {
-    color: 'white',
+    color: "white",
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

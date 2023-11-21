@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,146 +8,52 @@ import {
   StyleSheet,
   TextInput,
   SafeAreaView,
-} from 'react-native';
-
-import Icon from 'react-native-vector-icons/Ionicons';
-
-import Cart from './Cart';
-
-const burgerData = [
-  {
-    id: '1',
-    name: 'Royal Burger',
-    description: 'monate',
-    price: 5.99,
-    image: require('../assets/royal.jpeg'),
-  },
-  {
-    id: '2',
-    name: 'Beef Burger',
-    price: 6.99,
-    image: require('../assets/beef.jpg'),
-  },
-  {
-    id: '3',
-    name: 'Chicken Burger',
-    price: 5.99,
-    image: require('../assets/chicken.png'),
-  },
-  {
-    id: '4',
-    name: 'Patty Burger',
-    price: 6.99,
-    image: require('../assets/patty.jpg'),
-  },
-
-  {
-    id: '5',
-    name: 'Big John',
-    price: 5.99,
-    image: require('../assets/big-john.jpeg'),
-  },
-  {
-    id: '6',
-    name: 'Mizo Phyll',
-    price: 6.99,
-    image: require('../assets/mizo.jpeg'),
-  },
-];
-
-const chipsData = [
-  {
-    id: '6',
-    name: 'Small Fries',
-    price: 5.99,
-    image: require('../assets/small-chips.jpg'),
-  },
-  {
-    id: '7',
-    name: 'Medium Fries',
-    price: 6.99,
-    image: require('../assets/French-fries-deliciouse-Medium.jpg'),
-  },
-  {
-    id: '8',
-    name: 'Large Fries',
-    price: 6.99,
-    image: require('../assets/large-chips.png'),
-  },
-  {
-    id: '9',
-    name: 'Mix Alabama',
-    price: 6.99,
-    image: require('../assets/0001084_chips-fully-loaded-medium_550.jpeg'),
-  },
-  {
-    id: '10',
-    name: 'Big Dude',
-    price: 6.99,
-    image: require('../assets/585abfc54f6ae202fedf2935.png'),
-  },
-  {
-    id: '11',
-    name: 'Master Castro',
-    price: 6.99,
-    image: require('../assets/chips.png'),
-  },
-];
-
-const drinksData = [
-  {
-    id: '12',
-    name: 'Grape Fruit',
-    price: 5.99,
-    image: require('../assets/cold-grapefruit-juice.jpg'),
-  },
-  {
-    id: '13',
-    name: 'Diet Pepsi',
-    price: 6.99,
-    image: require('../assets/diet-pepsi-fountain-1-e1591902794438.jpg'),
-  },
-  {
-    id: '14',
-    name: 'Sprite Lemon',
-    price: 5.99,
-    image: require('../assets/sprite.jpg'),
-  },
-  {
-    id: '15',
-    name: 'Fresh Cola',
-    price: 6.99,
-    image: require('../assets/fresh-cola-drink-glass.jpg'),
-  },
-  {
-    id: '16',
-    name: 'Ice Tea',
-    price: 6.99,
-    image: require('../assets/fresh-ice-tea-with-ice-strawberries.jpg'),
-  },
-
-  {
-    id: '17',
-    name: 'Fanta Mango',
-    price: 6.99,
-    image: require('../assets/Fanta-Mango.jpg'),
-  },
-];
+} from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import Cart from "./Cart";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../firebase";
 
 const MenuPage = ({ navigation }) => {
-  const [activeTab, setActiveTab] = useState('Burgers');
+  const [topData, setTopData] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  var arayProd = [];
+  const fetchProducts = async () => {
+    try {
+      const q = query(
+        collection(db, "products"),
+        where("category", "==", selectedCategory.trim().toLocaleLowerCase())
+      );
+      const all = collection(db, "products");
+      const querySnapshot = await getDocs(selectedCategory == "All" ? all : q);
+      arayProd = [];
+      querySnapshot.forEach((doc) => {
+        arayProd.push({ id: doc.id, ...doc.data() });
+      });
+      setTopData(arayProd);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
-      <Image source={item.image} style={styles.itemImage} />
-      <Text style={styles.itemName}>{item.name}</Text>
-      <Text style={styles.itemPrice}>Price: R{item.price.toFixed(2)}</Text>
+      <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+      <Text style={styles.itemName}>{item.productName}</Text>
+      <Text style={styles.itemName}>Weight: {item.weight}</Text>
+      <Text style={styles.itemPrice}>Price: R{item.price}</Text>
       <TouchableOpacity
         style={styles.addIconContainer}
-        onPress={() => addToCart(item)}>
+        onPress={() => addToCart(item)}
+      >
         <Icon name="add-circle" size={30} color="rgba(255, 60, 60, 0.99)" />
       </TouchableOpacity>
     </View>
@@ -161,12 +67,23 @@ const MenuPage = ({ navigation }) => {
 
     if (existingItem) {
       existingItem.quantity += 1;
+      existingItem.totalPrice =
+        existingItem.quantity * parseFloat(existingItem.price);
     } else {
-      updatedCart.push({ ...item, quantity: 1 });
+      const newItem = {
+        ...item,
+        quantity: 1,
+        totalPrice: parseFloat(item.price),
+      };
+      updatedCart.push(newItem);
     }
 
+    const total = updatedCart.reduce(
+      (acc, cartItem) => acc + cartItem.totalPrice,
+      0
+    );
     setCartItems(updatedCart);
-    setCartTotal(cartTotal + item.price);
+    setCartTotal(total);
   };
 
   const toggleCart = () => {
@@ -192,31 +109,41 @@ const MenuPage = ({ navigation }) => {
       );
     }
 
-    switch (activeTab) {
-      case 'Burgers':
+    switch (selectedCategory) {
+      case "All":
         return (
           <FlatList
-            data={burgerData}
+            data={topData}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
             numColumns={2}
             contentContainerStyle={styles.itemsContainer}
           />
         );
-      case 'Chips':
+      case "Burgers":
         return (
           <FlatList
-            data={chipsData}
+            data={topData}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
             numColumns={2}
             contentContainerStyle={styles.itemsContainer}
           />
         );
-      case 'Drinks':
+      case "Chips":
         return (
           <FlatList
-            data={drinksData}
+            data={topData}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.itemsContainer}
+          />
+        );
+      case "Drinks":
+        return (
+          <FlatList
+            data={topData}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
             numColumns={2}
@@ -228,10 +155,19 @@ const MenuPage = ({ navigation }) => {
     }
   };
 
+  const filterProductsByCategory = (category) => {
+    setSelectedCategory(category);
+    fetchProducts();
+  };
+
+  const filteredTopData = topData.filter(
+    (item) => selectedCategory === "All" || item.category === selectedCategory
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Account')}>
+        <TouchableOpacity onPress={() => navigation.navigate("Prof")}>
           <Icon name="person" size={30} color="rgba(255, 60, 60, 0.99)" />
         </TouchableOpacity>
         <TouchableOpacity onPress={toggleCart}>
@@ -241,7 +177,7 @@ const MenuPage = ({ navigation }) => {
       <Image
         style={styles.natureIcon}
         resizeMode="cover"
-        source={require('../assets/Nature.png')}
+        source={require("../assets/Nature.png")}
       />
       <View style={styles.mainContent}>
         <View style={styles.deliveryCard}>
@@ -254,7 +190,7 @@ const MenuPage = ({ navigation }) => {
           </View>
 
           <Image
-            source={require('../assets/scooter.png')}
+            source={require("../assets/scooter.png")}
             style={styles.scooterImage}
           />
         </View>
@@ -266,25 +202,38 @@ const MenuPage = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.categoryButton,
-              activeTab === 'Burgers' && styles.activeTabButton,
+              selectedCategory === "All" && styles.activeTabButton,
             ]}
-            onPress={() => setActiveTab('Burgers')}>
+            onPress={() => filterProductsByCategory("All")}
+          >
+            <Text style={styles.categoryButtonText}>All</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.categoryButton,
+              selectedCategory === "Burgers" && styles.selectedCategoryButton,
+            ]}
+            onPress={() => filterProductsByCategory("Burgers")}
+          >
             <Text style={styles.categoryButtonText}>Burgers</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.categoryButton,
-              activeTab === 'Chips' && styles.activeTabButton,
+              selectedCategory === "Chips" && styles.activeTabButton,
             ]}
-            onPress={() => setActiveTab('Chips')}>
+            onPress={() => filterProductsByCategory("Chips")}
+          >
             <Text style={styles.categoryButtonText}>Chips</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.categoryButton,
-              activeTab === 'Drinks' && styles.activeTabButton,
+              selectedCategory === "Drinks" && styles.activeTabButton,
             ]}
-            onPress={() => setActiveTab('Drinks')}>
+            onPress={() => filterProductsByCategory("Drinks")}
+          >
             <Text style={styles.categoryButtonText}>Drinks</Text>
           </TouchableOpacity>
         </View>
@@ -300,53 +249,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     padding: 20,
   },
   mainContent: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
 
   natureIcon: {
-    top: '10%',
-    width: '100%',
+    top: "10%",
+    width: "100%",
     height: 185,
     left: 1,
-    position: 'absolute',
-    borderRadius: '15px',
+    position: "absolute",
+    borderRadius: "15px",
   },
   input: {
-    width: '50',
+    width: "50",
     borderWidth: 1,
-    borderColor: 'white',
-    backgroundColor: 'white',
+    borderColor: "white",
+    backgroundColor: "white",
     borderRadius: 8,
     padding: 5,
   },
   deliveryCard: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderRadius: 10,
     padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   deliveryTextContainer: {
     flex: 1,
   },
   deliveryText: {
     fontSize: 20,
-    fontWeight: 'medium',
-    color: 'rgba(255, 60, 60, 0.99)',
+    fontWeight: "medium",
+    color: "rgba(255, 60, 60, 0.99)",
   },
 
   scooterImage: {
     width: 200,
     height: 220,
-    resizeMode: 'contain',
-    alignSelf: 'flex-end',
+    resizeMode: "contain",
+    alignSelf: "flex-end",
     marginBottom: -80,
     marginLeft: 10,
   },
@@ -355,31 +304,31 @@ const styles = StyleSheet.create({
   },
   categoriesText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 20,
-    color: 'rgba(255, 60, 60, 0.99)',
+    color: "rgba(255, 60, 60, 0.99)",
   },
   categoryButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginTop: 10,
     marginBottom: 10,
     marginLeft: 10,
   },
   categoryButton: {
     flex: 1,
-    backgroundColor: 'rgba(128, 128, 128, 0.50)',
+    backgroundColor: "rgba(128, 128, 128, 0.50)",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
     marginRight: 10,
   },
   activeTabButton: {
-    backgroundColor: 'rgba(255, 60, 60, 0.99)',
+    backgroundColor: "rgba(255, 60, 60, 0.99)",
   },
   categoryButtonText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   itemsContainer: {
     paddingHorizontal: 10,
@@ -387,29 +336,29 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 17,
     padding: 10,
     margin: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   itemImage: {
     width: 150,
     height: 150,
-    resizeMode: 'cover',
+    resizeMode: "cover",
     borderRadius: 10,
   },
   itemName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 5,
   },
   itemPrice: {
     fontSize: 14,
-    color: 'gray',
+    color: "gray",
   },
   addIconContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
     right: 10,
   },
